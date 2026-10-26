@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>جستجوی مواد قانونی</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f3f6f7;--card:#fff;--ink:#14262b;--mute:#5d7076;--line:#d5dee1;--main:#0f4c5c;--hl:#ffe08a;--soft:#e4eef0}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1a1e;--card:#162429;--ink:#e6eff1;--mute:#93a9af;--line:#284047;--main:#6cc3d5;--hl:#6b5514;--soft:#1d3238}}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+.search{top:env(safe-area-inset-top,0px)!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;line-height:1.9}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.5rem;font-weight:800;margin:8px 0 4px;color:var(--main)}
+.sub{color:var(--mute);margin:0 0 18px;font-size:.92rem}
+.search{display:flex;gap:8px;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5}
+.search input{flex:1;font:inherit;font-size:1.05rem;padding:12px 16px;border:2px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.search input:focus{outline:none;border-color:var(--main)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 14px}
+select,button,.file{font:inherit;font-size:.9rem;padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button:hover,.file:hover{border-color:var(--main)}
+.file input{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{background:var(--soft);border-radius:20px;padding:2px 12px;font-size:.82rem}
+.chip b{color:var(--main)}.chip .viewall{font:inherit;font-size:.78rem;padding:0 10px;margin-right:8px;border-radius:12px}
+.chip i{cursor:pointer;font-style:normal;margin-right:8px;color:var(--mute)}
+.count{color:var(--mute);font-size:.9rem;margin:4px 0 10px}
+.res{background:var(--card);border:1px solid var(--line);border-right:5px solid var(--main);border-radius:10px;padding:14px 18px;margin-bottom:12px}
+.head{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;margin-bottom:4px}
+.law{background:var(--main);color:var(--card);border-radius:6px;padding:0 10px;font-size:.8rem}
+.num{font-weight:800;font-size:1.1rem}
+.path{color:var(--mute);font-size:.82rem}
+.txt{white-space:pre-wrap;margin:6px 0}
+.sec{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.sec h4{margin:0 0 2px;font-size:.88rem;color:var(--main)}
+mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 2px}
+.empty{text-align:center;color:var(--mute);padding:40px 10px;border:2px dashed var(--line);border-radius:12px}
+.modes{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:.9rem;margin:2px 0 8px}
+.modes label{cursor:pointer}
+.grp{margin:22px 0 8px;padding:8px 14px;background:var(--soft);border-radius:8px;font-weight:600}
+.grp small{color:var(--mute);font-weight:400}
+.topic{display:block;width:100%;text-align:right;margin-bottom:6px}
+.topic small{color:var(--mute)}
+.path a{cursor:pointer;text-decoration:underline dotted}
+.copy{margin-right:auto;font-size:.78rem;padding:1px 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>جستجوی مواد قانونی</h1>
+  <p class="sub">فایل‌های اکسل قوانین را اضافه کنید، سپس شماره ماده (مثلاً «ماده ۴») یا کلمه را جستجو کنید.</p>
+
+  <div class="bar">
+    <label class="file">افزودن فایل اکسل<input type="file" id="files" accept=".xlsx,.xls,.csv" multiple></label>
+    <select id="lawSel"><option value="">همه قوانین</option></select>
+    <button id="clear">پاک کردن همه فایل‌ها</button>
+  </div>
+  <div class="chips" id="chips"></div>
+
+  <div class="search"><input id="q" type="search" placeholder="مثلاً: ماده 4 &nbsp;یا&nbsp; وصیت &nbsp;یا&nbsp; ماده 10 اراده" autofocus></div>
+  <div class="modes"><b>جستجو در:</b>
+    <label><input type="radio" name="mode" value="all" checked> همه (متن و موضوع)</label>
+    <label><input type="radio" name="mode" value="text"> فقط متن ماده</label>
+    <label><input type="radio" name="mode" value="topic"> فقط موضوع (باب / فصل / مبحث)</label>
+    <button id="all">نمایش کل مواد</button>
+  </div>
+  <div class="chips" id="pathchip"></div>
+  <div class="count" id="count"></div>
+  <div id="out"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let DB=[];      // {law,baab,mabhas,fasl,num,numText,text,bands,tabsare,norm}
+let shown=100,mode='all',exactPath='',showAll=false;const INFO={};let TOPICS=[];
+
+/* ---------- نرمال‌سازی ---------- */
+function norm(s){
+  return String(s==null?'':s)
+    .replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+    .replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/[يى]/g,'ی').replace(/ك/g,'ک')
+    .replace(/[\u064B-\u065F\u0670\u0640]/g,'')
+    .replace(/[\u200c\u200f\u200e]/g,' ')
+    .replace(/\s+/g,' ').trim().toLowerCase();
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- خواندن اکسل (تشخیص خودکار ستون‌ها) ---------- */
+const PATH_KEYS=['باب','مبحث','فصل','بخش','کتاب','گفتار','قسمت','عنوان','موضوع'];
+const nk=k=>norm(k).replace(/\s|\//g,'');
+function detect(headers,body){
+  const H=headers.map(nk);
+  const pick=(fn)=>H.findIndex((h,i)=>h&&fn(h,i));
+  const stat=i=>{const v=body.map(r=>String(r[i]??'').trim()).filter(Boolean);
+    return{n:v.length,avg:v.length?v.reduce((a,x)=>a+x.length,0)/v.length:0,
+      numeric:v.length?v.filter(x=>/^\D{0,6}\d{1,4}\D{0,8}$/.test(norm(x))).length/v.length:0};};
+  let num=pick(h=>h.includes('شمارهماده'));
+  if(num<0)num=pick(h=>h.includes('شماره'));
+  if(num<0)num=pick(h=>h==='ماده'||(h.includes('ماده')&&!h.includes('متن')));
+  if(num<0){let best=-1,bs=0;H.forEach((h,i)=>{const st=stat(i);if(st.numeric>.8&&st.avg<12&&st.n>bs){best=i;bs=st.n;}});num=best;}
+  let text=pick((h,i)=>i!==num&&h.includes('متن'));
+  if(text<0)text=pick((h,i)=>i!==num&&h.includes('ماده'));
+  if(text<0){let best=-1,ba=0;H.forEach((h,i)=>{if(i===num)return;const st=stat(i);if(st.avg>ba){best=i;ba=st.avg;}});text=best;}
+  const path=[],secs=[];
+  H.forEach((h,i)=>{
+    if(!h||i===num||i===text)return;
+    if(PATH_KEYS.some(p=>h.includes(p))&&stat(i).avg<90)path.push(i);else secs.push(i);
+  });
+  return{num,text,path,secs};
+}
+function parseSheet(grid,law){
+  grid=grid.filter(r=>r.some(c=>String(c).trim()!==''));
+  if(grid.length<2)return{rows:[],info:null};
+  // ردیف سرستون: پرترین ردیف بین ۱۰ ردیف اول
+  let hi=0,bc=0;
+  grid.slice(0,10).forEach((r,i)=>{const c=r.filter(x=>String(x).trim()!=='').length;if(c>bc){bc=c;hi=i;}});
+  const headers=grid[hi].map((h,i)=>String(h).trim()||('ستون '+(i+1)));
+  const body=grid.slice(hi+1);
+  const d=detect(headers,body);
+  const last={};
+  const rows=body.map(r=>{
+    const g=i=>i>=0?String(r[i]??'').trim():'';
+    // پر کردن خودکار سلول‌های خالیِ ادغام‌شده در ستون‌های ساختاری (باب/فصل/...)
+    const path=d.path.map(i=>{let v=g(i);if(v)last[i]=v;else v=last[i]||'';return v;}).filter(Boolean);
+    const numText=g(d.num);
+    const m=norm(numText).match(/\d+/);
+    const sections=d.secs.map(i=>({h:headers[i],v:g(i)})).filter(x=>x.v);
+    const o={law,num:m?m[0]:'',numText,text:g(d.text),path,sections};
+    o.norm=norm([o.text,path.join(' '),sections.map(x=>x.v).join(' ')].join(' '));
+    o.tn=norm([o.text,sections.map(x=>x.v).join(' ')].join(' '));o.pn=norm(path.join(' '));
+    return o;
+  }).filter(o=>o.text||o.sections.length);
+  const info=`شماره: ${headers[d.num]||'نامشخص'} | متن: ${headers[d.text]||'نامشخص'} | سایر: ${[...d.path,...d.secs].map(i=>headers[i]).join('، ')}`;
+  return{rows,info};
+}
+async function readFile(f){
+  const buf=await f.arrayBuffer();
+  const wb=XLSX.read(buf,{type:'array'});
+  const law=f.name.replace(/\.[^.]+$/,'');
+  let all=[],infos=[];
+  wb.SheetNames.forEach(sn=>{
+    const grid=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
+    const name=wb.SheetNames.length>1?law+' - '+sn:law;
+    const r=parseSheet(grid,name);
+    all=all.concat(r.rows);if(r.info)infos.push(r.info);
+  });
+  INFO[law]=infos.join(' // ');
+  return all;
+}
+
+/* ---------- ذخیره‌سازی در مرورگر ---------- */
+function idb(){return new Promise((res,rej)=>{
+  const r=indexedDB.open('mavad2',1);
+  r.onupgradeneeded=()=>r.result.createObjectStore('kv');
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function save(){try{const d=await idb();d.transaction('kv','readwrite').objectStore('kv').put(DB,'db');}catch(e){}}
+async function load(){try{const d=await idb();
+  return await new Promise(res=>{const q=d.transaction('kv').objectStore('kv').get('db');
+    q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([]);});}catch(e){return[];}}
+
+/* ---------- رابط ---------- */
+function refreshMeta(){
+  const laws=[...new Set(DB.map(o=>o.law))];
+  const cur=$('lawSel').value;
+  $('lawSel').innerHTML='<option value="">همه قوانین</option>'+laws.map(l=>`<option>${esc(l)}</option>`).join('');
+  if(laws.includes(cur))$('lawSel').value=cur;
+  $('chips').innerHTML=laws.map(l=>`<span class="chip" title="${esc(INFO[l.split(' - ')[0]]||'')}"><b>${esc(l)}</b> (${DB.filter(o=>o.law===l).length} ماده)<button class="viewall" data-view="${esc(l)}">مشاهده کل</button><i data-law="${esc(l)}" title="حذف">✕</i></span>`).join('');
+}
+function parseQuery(q){
+  q=norm(q);
+  let num=null;
+  const m=q.match(/(?:ماده\s*)?(\d+)/);
+  const onlyNum=/^(ماده\s*)?\d+$/.test(q);
+  if(/ماده\s*\d+/.test(q)||onlyNum){
+    num=q.match(/\d+/)[0];
+    q=q.replace(/ماده\s*\d+/,'').replace(/^\d+$/,'').trim();
+  }
+  return{num,words:q.split(' ').filter(Boolean)};
+}
+function hlRe(words){
+  if(!words.length)return null;
+  const p=words.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/ی/g,'[یيى]').replace(/ک/g,'[کك]'));
+  return new RegExp('('+p.join('|')+')','gi');
+}
+function render(){
+  const {num,words}=parseQuery($('q').value);
+  const law=$('lawSel').value,out=$('out');
+  const pk=o=>o.law+'\u0001'+o.path.join(' › ');
+  const lbl=k=>k.split('\u0001').filter(Boolean).join(' › ');
+  $('pathchip').innerHTML=exactPath?`<span class="chip">فقط موضوع: <b>${esc(lbl(exactPath))}</b><i data-clr="1">✕</i></span>`:'';
+  $('all').textContent=showAll?'بستن نمایش کل':'نمایش کل مواد';
+  if(!DB.length){out.innerHTML='<div class="empty">هنوز فایلی اضافه نشده است. با دکمه «افزودن فایل اکسل» یک یا چند فایل انتخاب کنید.</div>';$('count').textContent='';return;}
+  const inLaw=DB.filter(o=>!law||o.law===law);
+  const noQ=num===null&&!words.length;
+  if(noQ&&!exactPath&&!showAll){
+    if(mode==='topic'){
+      const m=new Map();inLaw.forEach(o=>{if(!o.path.length)return;const k=pk(o);m.set(k,(m.get(k)||0)+1);});
+      TOPICS=[...m.keys()];
+      $('count').textContent=TOPICS.length?'یک موضوع را انتخاب کنید یا بخشی از نام آن را بنویسید:':'';
+      out.innerHTML=TOPICS.length?TOPICS.map((k,i)=>`<button class="topic" data-t="${i}">${esc(law?lbl(k).split(' › ').slice(1).join(' › '):lbl(k))} <small>(${m.get(k)} ماده)</small></button>`).join(''):'<div class="empty">در این فایل‌ها ستون باب/فصل/مبحث پیدا نشد.</div>';
+    }else{
+      $('count').textContent=inLaw.length+' ماده بارگذاری شده است.';
+      out.innerHTML='<div class="empty">شماره ماده یا کلمه‌ای را برای جستجو بنویسید، یا «نمایش کل مواد» را بزنید.</div>';
+    }
+    return;
+  }
+  const f={all:'norm',text:'tn',topic:'pn'}[mode];
+  const res=inLaw.filter(o=>(!exactPath||pk(o)===exactPath)&&(num===null||o.num===num)&&words.every(w=>(o[f]||'').includes(w)));
+  $('count').textContent=res.length+' نتیجه';
+  if(!res.length){out.innerHTML='<div class="empty">نتیجه‌ای پیدا نشد. عبارت کوتاه‌تر را امتحان کنید یا نوع جستجو را عوض کنید.</div>';return;}
+  const re=hlRe(words);
+  const H=s=>{s=esc(s);return re?s.replace(re,'<mark>$1</mark>'):s;};
+  const grouped=mode==='topic'||!!exactPath||(showAll&&!!law);
+  const gc={};if(grouped)res.forEach(o=>{const k=pk(o);gc[k]=(gc[k]||0)+1;});
+  let prev=null;
+  const part=res.slice(0,shown).map(o=>{
+    const k=pk(o);let g='';
+    if(grouped&&k!==prev){prev=k;g=`<div class="grp"><span class="law">${esc(o.law)}</span> ${H(o.path.join(' › ')||'بدون موضوع')} <small>(${gc[k]} ماده)</small></div>`;}
+    const pathHtml=(!grouped&&o.path.length)?`<div class="path"><a data-pi="${DB.indexOf(o)}" title="نمایش همه مواد این موضوع">${H(o.path.join(' › '))}</a></div>`:'';
+    return g+`<div class="res"><div class="head"><span class="law">${esc(o.law)}</span>
+      <span class="num">${esc(/ماده/.test(norm(o.numText))?o.numText:'ماده '+(o.numText||'؟'))}</span>
+      <button class="copy" data-i="${DB.indexOf(o)}">کپی</button></div>
+      ${pathHtml}
+      <div class="txt">${H(o.text)}</div>
+      ${o.sections.map(x=>`<div class="sec"><h4>${esc(x.h)}</h4><div class="txt">${H(x.v)}</div></div>`).join('')}</div>`;
+  }).join('');
+  out.innerHTML=part+(res.length>shown?`<button id="more">نمایش بیشتر</button>`:'');
+}
+
+/* ---------- رویدادها ---------- */
+document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener('change',e=>{mode=e.target.value;shown=100;render();}));
+$('all').addEventListener('click',()=>{showAll=!showAll;shown=$('lawSel').value?1e9:100;render();});
+$('pathchip').addEventListener('click',e=>{if(e.target.dataset.clr){exactPath='';shown=100;render();}});
+$('q').addEventListener('input',()=>{shown=100;render();});
+$('lawSel').addEventListener('change',()=>{shown=(showAll&&$('lawSel').value)?1e9:100;render();});
+$('files').addEventListener('change',async e=>{
+  const list=[...e.target.files];
+  for(const f of list){
+    try{
+      const rows=await readFile(f);
+      const law=rows[0]?.law.split(' - ')[0]||f.name;
+      DB=DB.filter(o=>o.law.split(' - ')[0]!==law).concat(rows);
+    }catch(err){alert('خواندن فایل «'+f.name+'» ممکن نشد.');}
+  }
+  e.target.value='';
+  await save();refreshMeta();render();
+});
+$('clear').addEventListener('click',async()=>{
+  if(!DB.length||!confirm('همه فایل‌های بارگذاری‌شده حذف شود؟'))return;
+  DB=[];await save();refreshMeta();render();
+});
+$('chips').addEventListener('click',async e=>{
+  const v=e.target.dataset.view;
+  if(v){$('lawSel').value=v;$('q').value='';exactPath='';showAll=true;shown=1e9;render();window.scrollTo(0,0);return;}
+  const l=e.target.dataset.law;if(!l)return;
+  DB=DB.filter(o=>o.law!==l);await save();refreshMeta();render();
+});
+$('out').addEventListener('click',e=>{
+  if(e.target.id==='more'){shown+=100;render();return;}
+  const t=e.target.closest('[data-t],[data-pi]');
+  if(t){const o=t.dataset.pi!==undefined?DB[t.dataset.pi]:null;
+    exactPath=o?o.law+'\u0001'+o.path.join(' › '):TOPICS[t.dataset.t];
+    shown=100;$('q').value='';render();window.scrollTo(0,0);return;}
+  if(e.target.classList.contains('copy')){
+    const o=DB[e.target.dataset.i];
+    const t=[o.law+' - '+o.numText,o.text,...o.sections.map(x=>x.h+': '+x.v)].filter(Boolean).join('\n');
+    navigator.clipboard?.writeText(t);e.target.textContent='کپی شد';
+    setTimeout(()=>e.target.textContent='کپی',1200);
+  }
+});
+(async()=>{DB=await load();DB.forEach(o=>{if(o.pn===undefined){o.pn=norm((o.path||[]).join(' '));o.tn=norm([o.text,...(o.sections||[]).map(x=>x.v)].join(' '));}});refreshMeta();render();})();
+</script>
+</body>
+</html>
